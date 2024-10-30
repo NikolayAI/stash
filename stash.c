@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
     }
 
     FILE* file;
-    const unsigned char breaking_byte = 0x66;
-    const int breaking_size = sizeof(breaking_byte);
+    const unsigned char breaking_buffer[] = {0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, '\0'};
+    const size_t breaking_size = sizeof(breaking_buffer) - 1;
     unsigned char buff[breaking_size];
     const int members_count = 1;
 
@@ -42,15 +42,17 @@ int main(int argc, char *argv[]) {
     if (is_break_mode) {
         size_t read_members = fread(&buff, breaking_size, members_count, file);
 
+        buff[breaking_size] = '\0';
+
         if (read_members == members_count) {
-            if (breaking_byte == buff[0]) {
+            if (strcmp(breaking_buffer, buff) == 0) {
                 puts("File is already corrupted");
             } else {
                 if (fseek(file, -breaking_size, SEEK_CUR) != 0) {
                     perror("Error corrupting file");
                     exit(1);
                 }
-                if (fwrite(&breaking_byte, breaking_size, members_count, file) != members_count) {
+                if (fwrite(&breaking_buffer, breaking_size, members_count, file) != members_count) {
                     perror("Error corrupting file");
                     exit(1);
                 }
@@ -78,8 +80,10 @@ int main(int argc, char *argv[]) {
 
         size_t read_members = fread(&buff, breaking_size, members_count, file);
 
+        buff[breaking_size] = '\0';
+
         if (read_members == members_count) {
-            if (breaking_byte != buff[0]) {
+            if (strcmp(breaking_buffer, buff) != 0) {
                 printf("File is not corrupted\n");
             } else {
                 if (fseek(file, -breaking_size, SEEK_END) != 0) {
